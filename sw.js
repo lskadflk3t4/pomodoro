@@ -1,6 +1,6 @@
 /* Pomodoro Studio service worker: offline-first app shell.
    Bump CACHE_VERSION whenever you change any file so installed copies update. */
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE = "pomodoro-studio-" + CACHE_VERSION;
 const SHELL = [
   "./",

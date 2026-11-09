@@ -29,9 +29,35 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
 .panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}h2{font-size:14px;margin:0}.eyebrow{font-size:9.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:900;margin-bottom:2px}
 .tabs{display:flex;gap:4px;padding:3px;background:#00000025;border-radius:10px;margin-bottom:8px}.tabs button{flex:1;border:0;background:transparent;color:var(--muted);border-radius:8px;padding:6px 2px;font-size:11px;font-weight:800}.tabs button.active{background:linear-gradient(120deg,var(--accent),var(--accent2));color:var(--accentText)}
 
-/* Fullscreen mode container styling */
-.panel:fullscreen, .panel:-webkit-full-screen { background: var(--bg); padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100vw; height: 100vh; overflow-y: auto; border-radius: 0; }
-.panel:fullscreen .clock-wrap { width: min(80vh, 380px); }
+/* ===== Fullscreen: pomodoro clock + elapsed day clock, responsive (desktop, phone portrait/landscape) ===== */
+.panel.fs-on{position:fixed;inset:0;z-index:9999;width:100vw;height:100vh;height:100dvh;max-width:none;margin:0;border:0;border-radius:0;box-shadow:none;background:var(--bg);overflow:hidden;
+ display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto auto auto;gap:6px 18px;align-items:center;justify-items:center;
+ padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.panel.fs-on>.panel-head{grid-row:1;grid-column:1/-1;width:100%;margin:0}
+.panel.fs-on>.panel-head h2,.panel.fs-on>.budget-box,.panel.fs-on>#roundCopy,.panel.fs-on>.stats-mini{display:none}
+.panel.fs-on>.tabs{grid-row:2;grid-column:1;width:min(100%,460px);margin:0}
+.panel.fs-on>.clock-wrap{grid-row:3;grid-column:1;height:100%;width:100%;aspect-ratio:auto;margin:0;container-type:size;align-self:stretch;justify-self:stretch}
+.panel.fs-on>.clock-wrap .clock-svg{inset:auto;left:50%;top:50%;translate:-50% -50%;width:min(100cqw,100cqh);height:min(100cqw,100cqh)}
+.panel.fs-on>.clock-wrap .time{font-size:clamp(30px,20cqmin,170px);letter-spacing:-.04em}
+.panel.fs-on>.clock-wrap .time-caption{font-size:max(9px,3.8cqmin)}
+.panel.fs-on>.clock-wrap .elapsed{font-size:max(10px,4.3cqmin);margin-top:1cqmin}
+.panel.fs-on>.status{grid-row:4;grid-column:1;margin:0;min-height:0}
+.panel.fs-on>.controls{grid-row:5;grid-column:1}
+.panel.fs-on>.controls .btn{padding:.7em 1.4em;font-size:clamp(12px,2.1vmin,20px)}
+.panel.fs-on>.status{font-size:clamp(11px,1.8vmin,18px)}
+.panel.fs-on>.tabs button{font-size:clamp(11px,1.8vmin,16px);padding:.55em .2em}
+.panel.fs-on>.panel-head .btn{font-size:clamp(10px,1.6vmin,15px)!important;padding:.4em .8em!important}.panel.fs-on>.panel-head .eyebrow{font-size:clamp(9.5px,1.5vmin,14px)}
+.panel.fs-on>.rounds{grid-row:6;grid-column:1;margin:0}
+.panel.fs-on>#dayClockPanel{grid-row:7;grid-column:1;background:none;border:0;box-shadow:none;padding:0;margin:0;width:100%;display:flex;flex-direction:column;align-items:center}
+.panel.fs-on>#dayClockPanel .panel-head{display:none}
+.panel.fs-on #dayClockPanel .day-clock-wrap{width:min(54vw,22dvh,280px);margin:0 auto}
+.panel.fs-on #dayClockPanel .day-pct{font-size:clamp(11px,1.7vmin,16px);margin-top:2px}
+@media (orientation:landscape){
+ .panel.fs-on{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto auto}
+ .panel.fs-on>#dayClockPanel{grid-column:2;grid-row:2/span 5;align-self:center}
+ .panel.fs-on #dayClockPanel .day-clock-wrap{width:min(100%,56dvh,340px)}
+}
+@media (max-height:430px){.panel.fs-on>.controls .btn{padding:.55em 1.1em}.panel.fs-on{gap:4px 14px}}
 
 /* Classic Timer with Always-Visible Graduations / Tick Marks */
 .clock-wrap{width:min(100%,220px);aspect-ratio:1;position:relative;display:grid;place-items:center;margin:6px auto;cursor:pointer;user-select:none}
@@ -47,12 +73,12 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
 .elapsed{color:var(--accent);font-size:10px;margin-top:4px}
 
 /* Borderless Digital Elapsed Day Clock Widget with Filling Ring */
-.day-clock-wrap{width:min(100%,170px);aspect-ratio:1;position:relative;display:grid;place-items:center;margin:4px auto;user-select:none}
+.day-clock-wrap{container-type:inline-size;width:min(100%,170px);aspect-ratio:1;position:relative;display:grid;place-items:center;margin:4px auto;user-select:none}
 .day-clock-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
 .day-clock-svg circle{fill:none;stroke-width:10}
-.dl{position:absolute;font-size:9.5px;font-weight:800;color:var(--ink);z-index:2;line-height:1.05;text-align:center}.dl i{display:block;font-style:normal}.dl i+i{font-size:8px;opacity:.55}.dl.t{top:17%;left:50%;transform:translateX(-50%)}.dl.b{bottom:17%;left:50%;transform:translateX(-50%)}.dl.r{right:17%;top:50%;transform:translateY(-50%)}.dl.l{left:17%;top:50%;transform:translateY(-50%)}
+.dl{position:absolute;font-size:5.6cqw;font-weight:800;color:var(--ink);z-index:2;line-height:1.05;text-align:center}.dl i{display:block;font-style:normal}.dl i+i{font-size:4.7cqw;opacity:.55}.dl.t{top:17%;left:50%;transform:translateX(-50%)}.dl.b{bottom:17%;left:50%;transform:translateX(-50%)}.dl.r{right:17%;top:50%;transform:translateY(-50%)}.dl.l{left:17%;top:50%;transform:translateY(-50%)}
 .day-pct{font-size:10px;color:var(--muted);margin-top:4px}.day-pct b{color:var(--accent)}
-.day-clock-digital{position:relative;z-index:2;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--ink);letter-spacing:-0.5px}
+.day-clock-digital{position:relative;z-index:2;font-size:8.8cqw;font-weight:900;font-variant-numeric:tabular-nums;color:var(--ink);letter-spacing:-0.5px}
 
 /* Day Timeline / Time Budget Bar */
 .budget-box{background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
@@ -182,7 +208,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
    </section>
 
    <!-- Streamlined Digital Elapsed Day Clock Widget (No hands, borderless, accurate filling ring) -->
-   <section class="panel" style="text-align:center;padding:16px 12px">
+   <section class="panel" id="dayClockPanel" style="text-align:center;padding:16px 12px">
     <div class="panel-head" style="margin-bottom:6px"><div><div class="eyebrow">Elapsed Day Clock</div><h2>Current Time</h2></div><span>🕒</span></div>
     <div class="day-clock-wrap">
      <svg class="day-clock-svg" viewBox="0 0 140 140" aria-hidden="true">
@@ -350,13 +376,20 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
  setInterval(updateDayClock, 250);
  updateDayClock();
 
- // Fullscreen toggle handler
+ // Fullscreen: the panel goes fullscreen and the elapsed day clock is moved in next to it (and back on exit)
+ const fsPanel=$("pomodoroPanel"),dayPanel=$("dayClockPanel"),dayHome=dayPanel.parentNode;
+ function setFs(on){
+  fsPanel.classList.toggle("fs-on",on);
+  if(on)fsPanel.appendChild(dayPanel);else dayHome.appendChild(dayPanel);
+  $("fullscreenBtn").textContent=on?"✕ Exit":"⛶ Fullscreen";
+ }
  $("fullscreenBtn").addEventListener("click",()=>{
-  const panel=$("pomodoroPanel");
-  if(!document.fullscreenElement){panel.requestFullscreen?.().catch(err=>{})}
-  else{document.exitFullscreen?.()}
+  if(fsPanel.classList.contains("fs-on")){if(document.fullscreenElement)document.exitFullscreen?.();else setFs(false)}
+  else if(fsPanel.requestFullscreen){fsPanel.requestFullscreen().catch(()=>setFs(true))}   // no Fullscreen API (e.g. iPhone): full-window mode instead
+  else setFs(true);
  });
- document.addEventListener("fullscreenchange",()=>{$("fullscreenBtn").textContent=document.fullscreenElement?"Exit Fullscreen":"⛶ Fullscreen"});
+ document.addEventListener("fullscreenchange",()=>setFs(document.fullscreenElement===fsPanel));
+ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&fsPanel.classList.contains("fs-on")&&!document.fullscreenElement)setFs(false)});
 
  document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState==="visible"){mainTick();quickTick();if(mainRunning&&prefs.keepAwake)toggleWakeLock(true)}
