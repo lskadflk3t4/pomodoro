@@ -95,6 +95,24 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
 .switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}.switch-row:last-child{border:0}.switch-copy strong{display:block;font-size:11px}.switch-copy small{display:block;color:var(--muted);font-size:9.5px}.switch{appearance:none;width:36px;height:20px;border-radius:99px;background:#6e6478;position:relative;flex:none;cursor:pointer;transition:.2s}.switch:before{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:white;left:3px;top:3px;transition:.2s}.switch:checked{background:var(--accent)}.switch:checked:before{transform:translateX(16px);background:var(--accentText)}
 .hint{font-size:9.5px;color:var(--muted);line-height:1.4;margin:6px 0 0}
 .sync-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.sync-box a{color:var(--accent)}.sync-box .controls{justify-content:flex-start;margin-top:8px}.sync-status{margin-top:8px}.sync-status.err{color:var(--danger)}.sync-badge{color:var(--accent);font-weight:700}.sync-badge.err{color:var(--danger)}
+.setup{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.setup[hidden]{display:none}
+.setup-card{width:min(100%,400px);max-height:100%;overflow:auto;background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:14px 16px 16px;box-shadow:var(--shadow);color:var(--ink)}
+.setup-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.setup-head strong{font-size:15px}
+.setup-x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:4px 8px;border-radius:8px}.setup-x:hover{color:var(--ink)}
+.setup-rows{display:grid;gap:8px}
+.setup-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#ffffff08}
+.setup-row.cur{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel))}
+.setup-row label{font-weight:800;font-size:13px;display:flex;flex-direction:column;line-height:1.2}.setup-row label small{font-weight:600;font-size:10px;color:var(--muted)}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:40px;border-radius:11px;border:1px solid var(--line);background:#ffffff10;color:var(--ink);font-size:20px;font-weight:800;line-height:1;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.stepper button:active{background:var(--accent);color:var(--accentText)}
+.stepper input{width:58px;height:40px;text-align:center;font-size:17px;font-weight:900;font-variant-numeric:tabular-nums;background:var(--bg2);color:var(--ink);border:1px solid var(--line);border-radius:11px;outline:none;-moz-appearance:textfield;appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.setup-total{font-size:11px;color:var(--muted);text-align:center;margin:10px 0 12px;line-height:1.4}.setup-total b{color:var(--accent)}
+.setup-card .btn.primary{width:100%;padding:11px 12px;font-size:14px}
+@media (max-height:430px){.setup-rows{grid-template-columns:1fr 1fr}.setup-card{width:min(100%,580px);padding:10px 12px 12px}.setup-total{margin:8px 0}.setup-card .btn.primary{padding:8px}.stepper button,.stepper input{height:36px}.stepper button{width:36px}.setup-row{padding:6px 8px}}
+@media (max-height:430px) and (max-width:700px){.setup-row{flex-direction:column;align-items:stretch;gap:4px}.setup-row label{flex-direction:row;gap:6px;align-items:baseline}.stepper{justify-content:space-between}.stepper input{flex:1;width:auto}}
 .view{display:none}.view.active{display:block}
 .motivation-banner{background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 25%,var(--panel)),color-mix(in srgb,var(--accent) 15%,var(--panel)));border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:14px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}.motivation-text{font-size:12px;font-weight:600;font-style:italic;color:var(--ink)}.motivation-btn{background:transparent;border:0;color:var(--accent);font-size:14px;padding:2px;cursor:pointer}
 .task-entry{display:flex;gap:6px;margin:8px 0}.task-entry input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;font-size:12px}
@@ -150,7 +168,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
     <div class="budget-track"><div class="budget-fill" id="budgetFill" style="width:0%"></div></div>
    </div>
 
-   <div class="clock-wrap" id="clockWrap" title="Click anywhere on timer to start/pause">
+   <div class="clock-wrap" id="clockWrap" title="Tap the clock to set focus, breaks and rounds (before starting), or to pause / resume">
     <svg class="clock-svg" viewBox="0 0 240 240" aria-hidden="true">
      <defs><linearGradient id="grad"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent2)"/></linearGradient></defs>
      <!-- Always-visible Dial Graduations / Tick Marks -->
@@ -174,7 +192,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
     </svg>
     <div class="clock-center">
      <div class="time" id="mainTime">25:00</div>
-     <div class="time-caption">TAP TO START</div>
+     <div class="time-caption" id="timeCaption">TAP TO SET</div>
      <div class="elapsed" id="elapsedText">00:00 elapsed · 25:00 total</div>
     </div>
    </div>
@@ -183,6 +201,14 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
    <div class="controls"><button class="btn primary" id="mainStart">Start focus</button><button class="btn secondary" id="mainReset">Reset</button><button class="btn secondary" id="mainSkip">Skip</button></div>
    <div class="rounds" id="roundDots"></div><div class="round-copy" id="roundCopy">0 of 4 focus rounds completed</div>
    <div class="stats-mini"><div class="stat"><strong id="statSessions">0</strong><span>Rounds</span></div><div class="stat"><strong id="statTime">0m</strong><span>Time</span></div><div class="stat"><strong id="statSets">0</strong><span>Sets</span></div></div>
+   <div class="setup" id="setupSheet" hidden role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="setup-card">
+     <div class="setup-head"><strong id="setupTitle">Set your session</strong><button class="setup-x" id="setupClose" type="button" aria-label="Close">✕</button></div>
+     <div class="setup-rows" id="setupRows"></div>
+     <div class="setup-total" id="setupTotal"></div>
+     <button class="btn primary" id="setupDone" type="button">Done</button>
+    </div>
+   </div>
   </section>
 
   <!-- SECTION 2: TO-DO LIST -->
@@ -402,7 +428,7 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
  function renderMain(){
   const elapsed=mainTotal-mainLeft,p=mainTotal?elapsed/mainTotal:0,offset=circumference*(1-p);
   ["mainRing","glowRing"].forEach(id=>{$(id).style.strokeDasharray=circumference;$(id).style.strokeDashoffset=offset});
-  $("mainTime").textContent=fmt(mainLeft);document.title=(mainRunning?fmt(mainLeft)+" · "+label(mode)+" – ":"")+"Pomodoro Studio";renderMinuteRing();saveTimer();$("elapsedText").textContent=fmt(elapsed)+" elapsed · "+fmt(mainTotal)+" total";
+  $("mainTime").textContent=fmt(mainLeft);document.title=(mainRunning?fmt(mainLeft)+" · "+label(mode)+" – ":"")+"Pomodoro Studio";renderMinuteRing();saveTimer();updateTapUI();$("elapsedText").textContent=fmt(elapsed)+" elapsed · "+fmt(mainTotal)+" total";
   $("mainStart").textContent=mainRunning?"Pause":(mainLeft===mainTotal?"Start "+label(mode):"Resume");
   
   const n=rounds(),roundNow=(stats.rounds%n)+1;$("roundBadge").textContent="Round "+roundNow+" / "+n;
@@ -479,9 +505,55 @@ header{display:flex;justify-content:space-between;align-items:center;gap:10px;ma
   ring.style.opacity=frac<0.004?0:1;
  }
  setInterval(()=>{if(mainRunning&&mode==="focus")renderMinuteRing()},200);
- $("clockWrap").addEventListener("click",()=>{startMain()});
- $("clockWrap").setAttribute("role","button");$("clockWrap").setAttribute("tabindex","0");$("clockWrap").setAttribute("aria-label","Start or pause timer");
- $("clockWrap").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();startMain()}});
+
+ // ---------- tap the clock (before it starts) to set focus / breaks / rounds ----------
+ // The sheet edits the very same fields as Settings (they stay in sync, persist, and update the clock live).
+ const SETUP_FIELDS=[["focusMins","Focus","minutes","focus",1,180],["shortMins","Short break","minutes","short",1,90],["longMins","Long break","minutes","long",1,120],["roundsMins","Rounds","per set","",1,20]];
+ const isIdle=()=>!mainRunning&&mainLeft===mainTotal&&mainLeft>0;
+ function updateTapUI(){
+  const c=document.getElementById("timeCaption");
+  if(c)c.textContent=mainRunning?"TAP TO PAUSE":isIdle()?"TAP TO SET":"TAP TO RESUME";
+  if(!isIdle())closeSetup();
+ }
+ function closeSetup(){const el=document.getElementById("setupSheet");if(el&&!el.hidden){el.hidden=true}}
+ function setupRow(id){return document.querySelector('#setupRows [data-id="'+id+'"]')}
+ function setupSync(){
+  SETUP_FIELDS.forEach(([id,,,m])=>{const row=setupRow(id);row.querySelector("input").value=$(id).value;row.classList.toggle("cur",m!==""&&m===mode)});
+  const f=+$("focusMins").value,sh=+$("shortMins").value,lg=+$("longMins").value,n=+$("roundsMins").value,tot=n*f+(n-1)*sh+lg;
+  $("setupTotal").innerHTML="One set: <b>"+n+" × "+f+" min</b> focus, "+(n-1)+" short break"+(n-1===1?"":"s")+" + 1 long break<br>≈ <b>"+(tot>=60?Math.floor(tot/60)+" h "+(tot%60?String(tot%60).padStart(2,"0")+" min":""):tot+" min")+"</b> in total";
+ }
+ function setupSet(id,v){
+  const f=SETUP_FIELDS.find(x=>x[0]===id);v=Math.max(f[4],Math.min(f[5],Math.floor(Number(v))||f[4]));
+  $(id).value=v;$(id).dispatchEvent(new Event("change"));setupSync();
+ }
+ (function buildSetup(){
+  const rows=$("setupRows");
+  SETUP_FIELDS.forEach(([id,name,unit,,min,max])=>{
+   const row=document.createElement("div");row.className="setup-row";row.dataset.id=id;
+   row.innerHTML='<label for="su_'+id+'">'+name+'<small>'+unit+'</small></label><div class="stepper"><button type="button" data-d="-1" aria-label="Decrease '+name+'">−</button><input id="su_'+id+'" type="number" inputmode="numeric" min="'+min+'" max="'+max+'"><button type="button" data-d="1" aria-label="Increase '+name+'">+</button></div>';
+   const inp=row.querySelector("input");
+   inp.addEventListener("change",()=>setupSet(id,inp.value));
+   inp.addEventListener("focus",()=>inp.select());
+   row.querySelectorAll("button").forEach(btn=>{
+    const d=+btn.dataset.d;let t1=null,t2=null,fired=false;
+    const step=()=>setupSet(id,(+$(id).value||min)+d);
+    const stop=()=>{clearTimeout(t1);clearInterval(t2)};
+    btn.addEventListener("pointerdown",e=>{if(e.button>0)return;fired=true;step();t1=setTimeout(()=>{t2=setInterval(step,85)},420)});   // press and hold to repeat
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>btn.addEventListener(ev,stop));
+    btn.addEventListener("click",()=>{if(fired){fired=false;return}step()});                                                        // keyboard activation
+    btn.addEventListener("contextmenu",e=>e.preventDefault());
+   });
+   rows.appendChild(row);
+  });
+ })();
+ function openSetup(){setupSync();const el=$("setupSheet");el.hidden=false;setTimeout(()=>$("setupDone").focus({preventScroll:true}),0)}
+ $("setupDone").addEventListener("click",closeSetup);$("setupClose").addEventListener("click",closeSetup);
+ $("setupSheet").addEventListener("click",e=>{if(e.target===$("setupSheet"))closeSetup()});
+ $("setupSheet").addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeSetup()}});
+ function clockTap(){if(isIdle())openSetup();else startMain()}
+ $("clockWrap").addEventListener("click",clockTap);
+ $("clockWrap").setAttribute("role","button");$("clockWrap").setAttribute("tabindex","0");$("clockWrap").setAttribute("aria-label","Timer: tap to set focus, breaks and rounds, or to pause and resume");
+ $("clockWrap").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();clockTap()}});
 
  function quickFromInputs(){const m=bounded("quickMins",10,0,999),s=bounded("quickSecs",0,0,59);quickTotal=m*60+s;quickLeft=quickTotal;renderQuick()}
  function startQuick(){
