@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="description" content="Offline Pomodoro timer, tasks and 24h day clock with optional cross-device sync.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pomodoro">
+<title>Pomodoro Studio</title>
+<style>
+:root{
+ --bg:#211b2b;--bg2:#30243b;--panel:#342a40;--panel2:#40334e;--ink:#fff7ff;--muted:#c2b4ce;
+ --accent:#42d9ff;--accent2:#a56bff;--accentText:#10202d;--line:#655474;--track:#584b68;
+ --good:#8df0c1;--danger:#ff6b91;--shadow:0 15px 40px #09061180;
+ --glow1:#57408c70;--glow2:#075a6d55;
+}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;padding:12px 10px;background:radial-gradient(ellipse at 10% 5%,var(--glow1),transparent 38%),radial-gradient(ellipse at 95% 90%,var(--glow2),transparent 35%),var(--bg);color:var(--ink);font:13.5px/1.45 ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+button,input,select,textarea{font:inherit}button{cursor:pointer}.app{width:min(100%,1120px);margin:auto}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}.brand{display:flex;align-items:center;gap:10px}.brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accentText);font-size:20px;font-weight:900}h1{font-size:20px;line-height:1.1;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:2px}
+.theme-picker{display:flex;align-items:center;gap:6px}.theme-picker label{font-size:11px;color:var(--muted);font-weight:700}.theme-picker select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:6px 8px;font-size:11px}
+.nav{display:flex;gap:5px;padding:4px;border:1px solid var(--line);background:#00000020;border-radius:12px;margin-bottom:10px}.nav button{border:0;background:transparent;color:var(--muted);font-weight:800;padding:7px 14px;border-radius:9px;font-size:12px}.nav button.active{background:var(--accent);color:var(--accentText)}
+.layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr) minmax(260px,.85fr);gap:12px;align-items:start}
+.panel{background:linear-gradient(145deg,var(--panel2),var(--panel));border:1px solid color-mix(in srgb,var(--line) 75%,transparent);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}h2{font-size:14px;margin:0}.eyebrow{font-size:9.5px;text-transform:uppercase;letter-spacing:1.5px;color:var(--accent);font-weight:900;margin-bottom:2px}
+.tabs{display:flex;gap:4px;padding:3px;background:#00000025;border-radius:10px;margin-bottom:8px}.tabs button{flex:1;border:0;background:transparent;color:var(--muted);border-radius:8px;padding:6px 2px;font-size:11px;font-weight:800}.tabs button.active{background:linear-gradient(120deg,var(--accent),var(--accent2));color:var(--accentText)}
+
+/* Fullscreen mode container styling */
+.panel:fullscreen, .panel:-webkit-full-screen { background: var(--bg); padding: 40px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100vw; height: 100vh; overflow-y: auto; border-radius: 0; }
+.panel:fullscreen .clock-wrap { width: min(80vh, 380px); }
+
+/* Classic Timer with Always-Visible Graduations / Tick Marks */
+.clock-wrap{width:min(100%,220px);aspect-ratio:1;position:relative;display:grid;place-items:center;margin:6px auto;cursor:pointer;user-select:none}
+.clock-wrap:hover{filter:brightness(1.05)}
+.clock-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.clock-svg circle{fill:none;stroke-width:9}
+.track{stroke:var(--track)}
+.progress{stroke:url(#grad);stroke-linecap:round;transition:stroke-dashoffset .35s linear}
+.glow{stroke:var(--accent);stroke-width:16!important;opacity:.12;filter:blur(5px)}
+.clock-center{text-align:center;position:relative;z-index:2}
+.time{font-size:46px;font-weight:900;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+.time-caption{font-size:9px;letter-spacing:1.5px;color:var(--muted);font-weight:800}
+.elapsed{color:var(--accent);font-size:10px;margin-top:4px}
+
+/* Borderless Digital Elapsed Day Clock Widget with Filling Ring */
+.day-clock-wrap{width:min(100%,170px);aspect-ratio:1;position:relative;display:grid;place-items:center;margin:4px auto;user-select:none}
+.day-clock-svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.day-clock-svg circle{fill:none;stroke-width:10}
+.dl{position:absolute;font-size:9.5px;font-weight:800;color:var(--ink);z-index:2;line-height:1.05;text-align:center}.dl i{display:block;font-style:normal}.dl i+i{font-size:8px;opacity:.55}.dl.t{top:17%;left:50%;transform:translateX(-50%)}.dl.b{bottom:17%;left:50%;transform:translateX(-50%)}.dl.r{right:17%;top:50%;transform:translateY(-50%)}.dl.l{left:17%;top:50%;transform:translateY(-50%)}
+.day-pct{font-size:10px;color:var(--muted);margin-top:4px}.day-pct b{color:var(--accent)}
+.day-clock-digital{position:relative;z-index:2;font-size:15px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--ink);letter-spacing:-0.5px}
+
+/* Day Timeline / Time Budget Bar */
+.budget-box{background:rgba(0,0,0,0.2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px}
+.budget-header{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.budget-track{height:8px;background:var(--track);border-radius:99px;overflow:hidden;display:flex}
+.budget-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .4s}
+
+.status{text-align:center;min-height:18px;color:var(--muted);font-size:11.5px;margin-bottom:8px}
+.controls{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}.btn{border:0;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:850}.primary{background:linear-gradient(120deg,var(--accent),var(--accent2));color:var(--accentText);min-width:100px;box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 23%,transparent)}.secondary{background:#ffffff10;border:1px solid var(--line);color:var(--ink)}.btn:hover{filter:brightness(1.08)}
+.rounds{display:flex;justify-content:center;gap:6px;margin-top:10px}.dot{width:8px;height:8px;border-radius:50%;background:var(--track);border:1px solid var(--line)}.dot.done{background:var(--accent);border-color:var(--accent)}.round-copy{text-align:center;color:var(--muted);font-size:10px;margin-top:4px}
+.stats-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.stat{text-align:center}.stat strong{display:block;color:var(--accent);font-size:16px}.stat span{font-size:9.5px;color:var(--muted)}
+.count-face{background:color-mix(in srgb,var(--accent2) 12%,var(--panel));border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px}.count-time{text-align:center;font-size:38px;line-height:1.1;font-weight:900;letter-spacing:-1.5px;font-variant-numeric:tabular-nums}.count-sub{text-align:center;font-size:10px;color:var(--muted);margin-top:2px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0}.field label{display:block;color:var(--muted);font-size:10px;font-weight:750;margin-bottom:3px}.field input,.field select{width:100%;min-width:0;background:var(--bg2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:7px 9px;outline:none;font-size:12px}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 55%,transparent)}.switch-row:last-child{border:0}.switch-copy strong{display:block;font-size:11px}.switch-copy small{display:block;color:var(--muted);font-size:9.5px}.switch{appearance:none;width:36px;height:20px;border-radius:99px;background:#6e6478;position:relative;flex:none;cursor:pointer;transition:.2s}.switch:before{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:white;left:3px;top:3px;transition:.2s}.switch:checked{background:var(--accent)}.switch:checked:before{transform:translateX(16px);background:var(--accentText)}
+.hint{font-size:9.5px;color:var(--muted);line-height:1.4;margin:6px 0 0}
+.sync-box{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.sync-box a{color:var(--accent)}.sync-box .controls{justify-content:flex-start;margin-top:8px}.sync-status{margin-top:8px}.sync-status.err{color:var(--danger)}.sync-badge{color:var(--accent);font-weight:700}.sync-badge.err{color:var(--danger)}
+.view{display:none}.view.active{display:block}
+.motivation-banner{background:linear-gradient(135deg,color-mix(in srgb,var(--accent2) 25%,var(--panel)),color-mix(in srgb,var(--accent) 15%,var(--panel)));border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:14px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px}.motivation-text{font-size:12px;font-weight:600;font-style:italic;color:var(--ink)}.motivation-btn{background:transparent;border:0;color:var(--accent);font-size:14px;padding:2px;cursor:pointer}
+.task-entry{display:flex;gap:6px;margin:8px 0}.task-entry input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:8px 10px;font-size:12px}
+.tag-pill .x{margin-left:5px;opacity:.6;font-weight:900}.tag-pill .x:hover{opacity:1;color:var(--danger)}.tag-pill.active .x:hover{color:var(--accentText)}
+.tag-add{display:flex;gap:4px;margin-bottom:8px}.tag-add input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:5px 8px;font-size:11px}.tag-add .btn{padding:4px 9px;font-size:10.5px}
+.task-tags{display:flex;flex-wrap:wrap;gap:3px;align-items:center;margin-top:2px}.chip{display:inline-flex;align-items:center;gap:3px;background:#ffffff10;border:1px solid var(--line);color:var(--accent);font-size:9.5px;font-weight:700;padding:0 4px 0 6px;border-radius:99px}.chip button{border:0;background:transparent;color:var(--muted);font-size:11px;padding:0 1px;line-height:1}.chip button:hover{color:var(--danger)}
+.tag-assign{background:transparent;border:1px dashed var(--line);color:var(--muted);font-size:9.5px;border-radius:99px;padding:0 3px;max-width:70px}
+.tag-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}.tag-pill{background:#ffffff0a;border:1px solid var(--line);color:var(--muted);font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;cursor:pointer}.tag-pill.active{background:var(--accent);color:var(--accentText);border-color:var(--accent)}
+.task-list{display:grid;gap:6px;max-height:240px;overflow-y:auto;padding-right:2px}
+.task{display:flex;align-items:center;gap:8px;background:#ffffff08;border:1px solid var(--line);border-radius:10px;padding:8px 10px}.task.active-task{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.task input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;flex:none}
+.task-content{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}.task-text{font-size:12px;overflow-wrap:anywhere}.task.done .task-text{text-decoration:line-through;color:var(--muted)}
+.task-submeta{display:flex;align-items:center;gap:6px;font-size:9.5px;color:var(--muted)}.task-badge{background:#ffffff10;padding:1px 5px;border-radius:4px;font-weight:700;color:var(--accent)}
+.task-actions{display:flex;align-items:center;gap:4px}.link-round-btn,.edit-task-btn{background:transparent;border:1px solid var(--line);color:var(--muted);font-size:10px;padding:2px 5px;border-radius:6px}.link-round-btn:hover,.edit-task-btn:hover{color:var(--accent);border-color:var(--accent)}
+.delete-task{border:0;background:transparent;color:var(--muted);font-size:16px;padding:0 2px}.delete-task:hover{color:var(--danger)}
+.task-meta{display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin:4px 0 8px}.empty{text-align:center;color:var(--muted);padding:18px 10px;font-size:12px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.metric{background:#ffffff08;border:1px solid var(--line);border-radius:12px;padding:12px}.metric strong{display:block;font-size:22px;color:var(--accent);letter-spacing:-1px}.metric span{color:var(--muted);font-size:9.5px}
+.stats-section{margin-top:14px}.stats-section h3{font-size:12px;margin:0 0 8px}.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:120px;padding:8px 0 0}.daybar{height:100%;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:4px}.bar-track{height:80px;width:min(100%,30px);border-radius:6px;background:#ffffff0c;display:flex;align-items:end;overflow:hidden}.bar-fill{width:100%;border-radius:6px;background:linear-gradient(0deg,var(--accent2),var(--accent));min-height:2px}.daybar small{font-size:9.5px;color:var(--muted)}.daybar em{font-style:normal;font-size:8.5px;color:var(--muted)}
+.footer-note{font-size:9.5px;color:var(--muted);margin-top:10px}
+@media(max-width:960px){.layout{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="app">
+<header>
+ <div class="brand"><div class="brand-mark">◷</div><div><h1>Pomodoro Studio</h1><div class="sub">Focus, plan, and execute seamlessly offline.</div></div></div>
+ <div class="theme-picker"><label for="themeSelect">Theme</label><select id="themeSelect"><option value="sinister">Sinister Monochrome</option><option value="dynamic">Dynamic (Time of Day)</option><option value="cyber">Cyberpunk</option><option value="vampire">Vampire</option><option value="garden">Garden</option></select></div>
+</header>
+<nav class="nav" aria-label="Main navigation">
+ <button class="active" data-view="timer">Main Studio</button><button data-view="settings">Settings</button><button data-view="stats">Statistics & Reports</button>
+</nav>
+
+<section class="view active" id="timerView">
+ <div class="motivation-banner">
+  <div class="motivation-text" id="motivationQuote">"Discipline is choosing between what you want now and what you want most."</div>
+  <button class="motivation-btn" id="nextQuote" title="New inspiration" aria-label="New inspiration">✨</button>
+ </div>
+
+ <div class="layout">
+  <!-- SECTION 1: POMODORO TIMER WITH TICKS & FULLSCREEN BUTTON -->
+  <section class="panel" id="pomodoroPanel">
+   <div class="panel-head">
+    <div><div class="eyebrow">Focus Session</div><h2>Pomodoro timer</h2></div>
+    <div style="display:flex;align-items:center;gap:8px">
+     <button class="btn secondary" id="fullscreenBtn" style="padding:4px 8px;font-size:10px" title="Toggle Fullscreen">⛶ Fullscreen</button>
+     <div class="eyebrow" id="roundBadge">Round 1 / 4</div>
+    </div>
+   </div>
+   <div class="tabs"><button class="active" data-mode="focus">Focus</button><button data-mode="short">Short break</button><button data-mode="long">Long break</button></div>
+   
+   <div class="budget-box">
+    <div class="budget-header"><span id="budgetText">Day Budget: 0h spent</span><span id="budgetRemaining">Remaining</span></div>
+    <div class="budget-track"><div class="budget-fill" id="budgetFill" style="width:0%"></div></div>
+   </div>
+
+   <div class="clock-wrap" id="clockWrap" title="Click anywhere on timer to start/pause">
+    <svg class="clock-svg" viewBox="0 0 240 240" aria-hidden="true">
+     <defs><linearGradient id="grad"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent2)"/></linearGradient></defs>
+     <!-- Always-visible Dial Graduations / Tick Marks -->
+     <g stroke="var(--ink)" stroke-width="2" opacity="0.85">
+      <line x1="120" y1="8" x2="120" y2="18"/>
+      <line x1="120" y1="222" x2="120" y2="232"/>
+      <line x1="8" y1="120" x2="18" y2="120"/>
+      <line x1="222" y1="120" x2="232" y2="120"/>
+      <line x1="40" y1="40" x2="47" y2="47"/>
+      <line x1="193" y1="193" x2="200" y2="200"/>
+      <line x1="40" y1="200" x2="47" y2="193"/>
+      <line x1="193" y1="47" x2="200" y2="40"/>
+     </g>
+     <circle class="track" cx="120" cy="120" r="105"/>
+     <circle class="glow" id="glowRing" cx="120" cy="120" r="105"/>
+     <circle class="progress" id="mainRing" cx="120" cy="120" r="105"/>
+     <g id="minuteGroup" style="display:none">
+      <circle class="track" cx="120" cy="120" r="98" style="stroke-width:5px;opacity:.7"/>
+      <circle id="minuteRing" cx="120" cy="120" r="98" stroke="var(--accent2)" stroke-linecap="round" stroke-dasharray="615.75" stroke-dashoffset="615.75" style="stroke-width:5px"/>
+     </g>
+    </svg>
+    <div class="clock-center">
+     <div class="time" id="mainTime">25:00</div>
+     <div class="time-caption">TAP TO START</div>
+     <div class="elapsed" id="elapsedText">00:00 elapsed · 25:00 total</div>
+    </div>
+   </div>
+
+   <div class="status" id="mainStatus" aria-live="polite">Ready when you are.</div>
+   <div class="controls"><button class="btn primary" id="mainStart">Start focus</button><button class="btn secondary" id="mainReset">Reset</button><button class="btn secondary" id="mainSkip">Skip</button></div>
+   <div class="rounds" id="roundDots"></div><div class="round-copy" id="roundCopy">0 of 4 focus rounds completed</div>
+   <div class="stats-mini"><div class="stat"><strong id="statSessions">0</strong><span>Rounds</span></div><div class="stat"><strong id="statTime">0m</strong><span>Time</span></div><div class="stat"><strong id="statSets">0</strong><span>Sets</span></div></div>
+  </section>
+
+  <!-- SECTION 2: TO-DO LIST -->
+  <section class="panel">
+   <div class="panel-head"><div><div class="eyebrow">Hierarchy & Tasks</div><h2>To-do list</h2></div><div class="eyebrow" id="taskProgress">0 completed</div></div>
+   <div class="tag-bar" id="tagBar"></div>
+   <form class="tag-add" id="tagForm"><input id="tagInput" type="text" maxlength="24" placeholder="New tag (no task needed)" autocomplete="off" aria-label="New tag"><button class="btn secondary" type="submit">+ Tag</button></form>
+   <form class="task-entry" id="taskForm">
+    <input id="taskInput" type="text" maxlength="180" placeholder="Add task (optional #tag)" autocomplete="off" aria-label="New task">
+    <button class="btn primary" type="submit" style="padding:8px 12px">Add</button>
+   </form>
+   <div class="task-meta"><span><span id="taskCount">0 tasks</span> <span class="sync-badge" id="syncBadge"></span></span><button class="btn secondary" id="clearDone" style="padding:2px 6px;font-size:9.5px">Clear completed</button></div>
+   <div class="task-list" id="taskList"><div class="empty">Your task list is clean. Add something to execute!</div></div>
+  </section>
+
+  <!-- SECTION 3: QUICK COUNTDOWN & STREAMLINED DIGITAL ELAPSED DAY CLOCK -->
+  <aside class="side" style="display:grid;gap:12px">
+   <section class="panel">
+    <div class="panel-head"><div><div class="eyebrow">Independent Timer</div><h2>Quick countdown</h2></div><span>◴</span></div>
+    <div class="count-face"><div class="count-time" id="quickTime">10:00</div><div class="count-sub" id="quickStatus">Set time and start</div></div>
+    <div class="fields"><div class="field"><label for="quickMins">Minutes</label><input id="quickMins" type="number" min="0" max="999" value="10"></div><div class="field"><label for="quickSecs">Seconds</label><input id="quickSecs" type="number" min="0" max="59" value="0"></div></div>
+    <div class="controls"><button class="btn primary" id="quickStart">Start</button><button class="btn secondary" id="quickReset">Reset</button></div>
+   </section>
+
+   <!-- Streamlined Digital Elapsed Day Clock Widget (No hands, borderless, accurate filling ring) -->
+   <section class="panel" style="text-align:center;padding:16px 12px">
+    <div class="panel-head" style="margin-bottom:6px"><div><div class="eyebrow">Elapsed Day Clock</div><h2>Current Time</h2></div><span>🕒</span></div>
+    <div class="day-clock-wrap">
+     <svg class="day-clock-svg" viewBox="0 0 140 140" aria-hidden="true">
+      <circle cx="70" cy="70" r="58" class="track"/>
+      <circle cx="70" cy="70" r="50" class="track" style="stroke-width:6px"/>
+      <!-- layer 1 (00-12h): outer ring. layer 2 (12-24h): inner ring, touching but never over layer 1 -->
+      <circle id="dayPieRing" cx="70" cy="70" r="58" fill="none" stroke="var(--accent)" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.42" stroke-dashoffset="364.42"/>
+      <circle id="dayPieRing2" cx="70" cy="70" r="50" fill="none" stroke="var(--accent2)" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16" style="visibility:hidden;stroke-width:6px"/>
+      <g stroke="var(--ink)" stroke-width="1.2" opacity=".55">
+       <line x1="112" y1="70" x2="115" y2="70" transform="rotate(30 70 70)"/><line x1="112" y1="70" x2="115" y2="70" transform="rotate(60 70 70)"/>
+       <line x1="112" y1="70" x2="115" y2="70" transform="rotate(120 70 70)"/><line x1="112" y1="70" x2="115" y2="70" transform="rotate(150 70 70)"/>
+       <line x1="112" y1="70" x2="115" y2="70" transform="rotate(210 70 70)"/><line x1="112" y1="70" x2="115" y2="70" transform="rotate(240 70 70)"/>
+       <line x1="112" y1="70" x2="115" y2="70" transform="rotate(300 70 70)"/><line x1="112" y1="70" x2="115" y2="70" transform="rotate(330 70 70)"/>
+      </g>
+      <g id="dayHead"><circle id="dayHeadDot" cx="128" cy="70" r="4" fill="var(--ink)" stroke="var(--accent)" stroke-width="2"/></g>
+     </svg>
+     <span class="dl t"><i>0</i><i>12</i></span><span class="dl r"><i>3</i><i>15</i></span><span class="dl b"><i>6</i><i>18</i></span><span class="dl l"><i>9</i><i>21</i></span>
+     <div class="day-clock-digital" id="dayClockDigital">00:00:00</div>
+    </div>
+    <div class="day-pct" id="dayPct"></div>
+   </section>
+  </aside>
+ </div>
+</section>
+
+<!-- SETTINGS TAB -->
+<section class="view" id="settingsView">
+ <section class="panel" style="max-width:650px;margin:0 auto">
+  <div class="panel-head"><div><div class="eyebrow">Studio Preferences</div><h2>Automation, Sound & Display</h2></div><span>⚙️</span></div>
+  
+  <div style="display:grid;gap:10px;margin-bottom:15px">
+   <div class="field"><label for="focusMins">Focus duration (minutes)</label><input id="focusMins" type="number" min="1" max="180" value="25"></div>
+   <div class="field"><label for="shortMins">Short break duration (minutes)</label><input id="shortMins" type="number" min="1" max="90" value="5"></div>
+   <div class="field"><label for="longMins">Long break duration (minutes)</label><input id="longMins" type="number" min="1" max="120" value="15"></div>
+   <div class="field"><label for="roundsMins">Focus rounds per set</label><input id="roundsMins" type="number" min="1" max="20" value="4"></div>
+  </div>
+
+  <div class="switch-row"><div class="switch-copy"><strong>Auto-start focus</strong><small>Automatically start next focus round</small></div><input class="switch" type="checkbox" id="autoFocus"></div>
+  <div class="switch-row"><div class="switch-copy"><strong>Auto-start breaks</strong><small>Automatically start short and long breaks</small></div><input class="switch" type="checkbox" id="autoBreak"></div>
+  <div class="switch-row"><div class="switch-copy"><strong>Keep display awake</strong><small>Prevent screen from sleeping during sessions</small></div><input class="switch" type="checkbox" id="keepAwake"></div>
+  <div class="switch-row"><div class="switch-copy"><strong>Tick sound</strong><small>Soft audio tick every second while running</small></div><input class="switch" type="checkbox" id="tickOn" checked></div>
+  
+  <div class="switch-row"><div class="switch-copy"><strong>Round-end notification</strong><small>Notify when a round ends while the app is in the background</small></div><input class="switch" type="checkbox" id="notifyOn"></div>
+  <div class="field" style="margin-top:10px"><label for="endSound">Round-end alarm sound</label><select id="endSound"><option value="bell">Bright bell</option><option value="double">Double chime</option><option value="wood">Woodblock</option><option value="soft">Soft melody</option></select></div>
+  <button class="btn secondary" id="testSound" style="width:100%;margin-top:10px">Test Alarm Sound</button>
+  <div class="switch-row" id="installRow" style="display:none"><div class="switch-copy"><strong>Install app</strong><small>Add Pomodoro Studio to your desktop or home screen</small></div><button class="btn primary" id="installBtn" type="button">Install</button></div>
+
+  <div class="sync-box">
+   <div class="eyebrow">Sync across devices</div>
+   <p class="hint">Tasks and tags sync through a private GitHub Gist that you own, no server needed. Use the <b>same token on every device</b>.
+    <a href="https://github.com/settings/tokens/new?scopes=gist&description=Pomodoro%20Studio%20sync" target="_blank" rel="noopener">Create a token</a>
+    (classic, only the <b>gist</b> scope). It is stored only on this device.</p>
+   <div class="field"><label for="syncToken">GitHub token</label><input id="syncToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ghp_…"></div>
+   <div class="controls"><button class="btn primary" id="syncConnect" type="button">Connect &amp; sync</button><button class="btn secondary" id="syncNow" type="button">Sync now</button><button class="btn secondary" id="syncDisconnect" type="button">Disconnect</button></div>
+   <p class="hint sync-status" id="syncStatus" aria-live="polite">Not connected. Everything stays on this device.</p>
+   <div class="controls"><button class="btn secondary" id="exportBtn" type="button">Export tasks (JSON)</button><label class="btn secondary" for="importFile" style="cursor:pointer">Import tasks (JSON)</label><input type="file" id="importFile" accept="application/json,.json" hidden></div>
+  </div>
+  <p class="hint" style="margin-top:12px">All preferences and states persist safely offline.</p>
+ </section>
+</section>
+
+<!-- STATISTICS TAB -->
+<section class="view" id="statsView">
+ <section class="panel">
+  <div class="panel-head"><div><div class="eyebrow">Fast Reports</div><h2>Where did my week go?</h2></div><div class="eyebrow">Weekly Summary</div></div>
+  <div class="count-face" style="text-align:left;padding:14px 18px;margin-bottom:14px">
+   <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:900;margin-bottom:4px">⚡ Instant Review</div>
+   <div id="fastReportText" style="font-size:14px;line-height:1.4;font-weight:500">Loading fast report...</div>
+  </div>
+  <div class="stats-grid">
+   <div class="metric"><strong id="statTasksToday">0</strong><span>Tasks done today</span></div>
+   <div class="metric"><strong id="statTasksWeek">0</strong><span>Tasks done this week</span></div>
+   <div class="metric"><strong id="statTasksMonth">0</strong><span>Tasks done this month</span></div>
+   <div class="metric"><strong id="totalFocus">0h</strong><span>Total focus</span></div>
+  </div>
+  <div class="stats-section"><h3>Focus time · last 7 days</h3><div class="week" id="weekChart"></div></div>
+  <button class="btn secondary" id="resetStats" style="margin-top:12px">Reset statistics</button>
+  <p class="footer-note">All data is securely saved offline in local browser storage.</p>
+ </section>
+</section>
+</main>
+
+<script>
+(()=>{
+ const $=id=>document.getElementById(id), circumference=2*Math.PI*105;
+ const quotes=[
+  "\"Discipline is choosing between what you want now and what you want most.\"",
+  "\"The secret of getting ahead is getting started. Break complex tasks into small steps.\"",
+  "\"You don't have to be extreme, just consistent.\"",
+  "\"Focus is a muscle. Practice avoiding distractions to unlock deep work.\"",
+  "\"Action isn't just the effect of motivation; it's also the cause of it.\""
+ ];
+ let quoteIdx=0;
+ $("nextQuote").addEventListener("click",()=>{quoteIdx=(quoteIdx+1)%quotes.length;$("motivationQuote").textContent=quotes[quoteIdx]});
+
+ let mode="focus",mainTotal=1500,mainLeft=1500,mainRunning=false,mainInterval=null,mainEndAt=0,quickEndAt=0;
+ let quickTotal=600,quickLeft=600,quickRunning=false,quickInterval=null,audioCtx=null;
+ let activeTag="all",activeTaskId=null,wakeLock=null;
+ let stats=load("pomodoroStats12",{days:{},rounds:0,sets:0,totalSeconds:0}),tasks=load("pomodoroTasks12",[]);
+ if(!Array.isArray(stats.taskLog)){stats.taskLog=[];tasks.forEach(t=>{if(t.done&&t.completedAt)stats.taskLog.push({id:t.id,at:t.completedAt})});try{localStorage.setItem("pomodoroStats12",JSON.stringify(stats))}catch(e){}}
+ const prefs=Object.assign({notifyOn:false,autoFocus:false,autoBreak:false,tickOn:true,endSound:"bell",theme:"sinister",keepAwake:false,focusMins:25,shortMins:5,longMins:15,roundsMins:4},load("pomodoroPrefs12",{}));
+
+ // ---------- sync state (tombstones + per-task timestamps; tasks/tags only) ----------
+ const SYNC_FILE="pomodoro-studio-sync.json";
+ let syncCfg=Object.assign({token:"",gistId:"",lastSync:0},load("pomodoroSync12",{}));
+ let syncMeta=Object.assign({taskTomb:{},tags:{},tagTomb:{}},load("pomodoroSyncMeta12",{}));
+ let sigMap={},tagPrev=null,syncTimer=null,syncing=false,syncAgain=false;
+ const taskSig=t=>JSON.stringify([t.text,t.tags||[],!!t.done,t.completedAt||null,t.roundsLinked||0]);
+ function initSigs(){sigMap={};tasks.forEach(t=>{if(!t.updatedAt)t.updatedAt=Math.floor(t.id)||Date.now();sigMap[t.id]=taskSig(t)})}
+ initSigs();
+ function persistTasks(){
+  const now=Date.now(),cur={};
+  tasks.forEach(t=>{cur[t.id]=1;const sg=taskSig(t);if(sigMap[t.id]!==sg){t.updatedAt=now;sigMap[t.id]=sg}});
+  Object.keys(sigMap).forEach(id=>{if(!cur[id]){syncMeta.taskTomb[id]=now;delete sigMap[id]}});
+  save("pomodoroTasks12",tasks);save("pomodoroSyncMeta12",syncMeta);scheduleSync();
+ }
+ function persistTags(){
+  const now=Date.now();
+  if(!tagPrev)tagPrev=Object.keys(syncMeta.tags).filter(n=>syncMeta.tags[n]>(syncMeta.tagTomb[n]||0));
+  tagList.forEach(n=>{if(!tagPrev.includes(n)||!syncMeta.tags[n]){syncMeta.tags[n]=now}});
+  tagPrev.forEach(n=>{if(!tagList.includes(n))syncMeta.tagTomb[n]=now});
+  tagPrev=[...tagList];
+  save("pomodoroTags12",tagList);save("pomodoroSyncMeta12",syncMeta);scheduleSync();
+ }
+
+ function load(k,f){try{const v=JSON.parse(localStorage.getItem(k));return v??f}catch(e){return f}}
+ function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+ function bounded(id,f,min,max){let n=Number($(id).value);if(!Number.isFinite(n))n=f;n=Math.max(min,Math.min(max,Math.floor(n)));$(id).value=n;return n}
+ const duration={focus:()=>bounded("focusMins",25,1,180),short:()=>bounded("shortMins",5,1,90),long:()=>bounded("longMins",15,1,120)};
+ const rounds=()=>bounded("roundsMins",4,1,20);
+ const dateKey=(d=new Date())=>{const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`};
+
+ async function toggleWakeLock(enable){
+  if('wakeLock' in navigator){
+   try{
+    if(enable&&!wakeLock){wakeLock=await navigator.wakeLock.request('screen');wakeLock.addEventListener('release',()=>{wakeLock=null})}
+    else if(!enable&&wakeLock){await wakeLock.release();wakeLock=null}
+   }catch(e){}
+  }
+ }
+
+ function audio(){if(!audioCtx){const AC=window.AudioContext||window.webkitAudioContext;if(AC)audioCtx=new AC()}if(audioCtx?.state==="suspended")audioCtx.resume();return audioCtx}
+ function beep(freq,dur=.12,vol=.08,wave="sine",delay=0){const c=audio();if(!c)return;const o=c.createOscillator(),g=c.createGain();o.type=wave;o.frequency.value=freq;g.gain.setValueAtTime(.0001,c.currentTime+delay);g.gain.exponentialRampToValueAtTime(vol,c.currentTime+delay+.015);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+delay+dur);o.connect(g);g.connect(c.destination);o.start(c.currentTime+delay);o.stop(c.currentTime+delay+dur+.02)}
+ function endChime(){const type=$("endSound").value;if(type==="bell"){beep(880,.5,.12,"sine");beep(1320,.65,.07,"sine",.12)}else if(type==="double"){beep(740,.22,.11,"triangle");beep(990,.3,.1,"triangle",.28)}else if(type==="wood"){beep(480,.09,.14,"triangle");beep(480,.09,.12,"triangle",.19);beep(620,.12,.12,"triangle",.38)}else{[523,659,784,1047].forEach((f,i)=>beep(f,.38,.075,"sine",i*.17))}}
+ function alarm(){endChime();setTimeout(()=>beep(660,.32,.07,"sine"),700)}
+ function fmt(s){return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+
+ function updateDayClock(){
+  const now=new Date();
+  const h=now.getHours(), m=now.getMinutes(), s=now.getSeconds(), ms=now.getMilliseconds();
+  if($('dayClockDigital')) $('dayClockDigital').textContent=String(h).padStart(2,'0')+":"+String(m).padStart(2,'0')+":"+String(s).padStart(2,'0');
+  
+  // Two-ring 24h dial: 12h analogue face (top = 0/12). Outer ring = 00-12h, inner ring = 12-24h; the rings only touch, never overlap.
+  const pm=h>=12, lapFrac=(((h%12)*3600)+(m*60)+s+(ms/1000))/43200, outC=2*Math.PI*58, inC=2*Math.PI*50;
+  const dayFraction=((h*3600)+(m*60)+s+(ms/1000))/86400;
+  const l1=$('dayPieRing'), l2=$('dayPieRing2'), dot=$('dayHeadDot');
+  if(l1) l1.style.strokeDashoffset=pm?0:outC*(1-lapFrac);
+  if(l2){l2.style.visibility=pm?'visible':'hidden';l2.style.strokeDashoffset=inC*(1-lapFrac)}
+  if($('dayHead')) $('dayHead').setAttribute('transform','rotate('+(lapFrac*360).toFixed(3)+' 70 70)');
+  if(dot){dot.setAttribute('cx',pm?120:128);dot.setAttribute('r',pm?2.5:4);dot.setAttribute('stroke-width',pm?1:2);dot.setAttribute('stroke',pm?'var(--accent2)':'var(--accent)')}
+  if($('dayPct')) $('dayPct').innerHTML='<b>'+Math.floor(dayFraction*100)+'%</b> of the day · <b>'+(pm?'Inner ring':'Outer ring')+'</b> ('+(pm?'12–24':'00–12')+'h)';
+  if(prefs.theme==='dynamic'&&h!==lastThemeHour){lastThemeHour=h;setTheme('dynamic')}
+ }
+ let lastThemeHour=new Date().getHours();
+ setInterval(updateDayClock, 250);
+ updateDayClock();
+
+ // Fullscreen toggle handler
+ $("fullscreenBtn").addEventListener("click",()=>{
+  const panel=$("pomodoroPanel");
+  if(!document.fullscreenElement){panel.requestFullscreen?.().catch(err=>{})}
+  else{document.exitFullscreen?.()}
+ });
+ document.addEventListener("fullscreenchange",()=>{$("fullscreenBtn").textContent=document.fullscreenElement?"Exit Fullscreen":"⛶ Fullscreen"});
+
+ document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"){mainTick();quickTick();if(mainRunning&&prefs.keepAwake)toggleWakeLock(true)}
+ });
+ function stopMain(){mainRunning=false;if(mainInterval){clearInterval(mainInterval);mainInterval=null};toggleWakeLock(false)}
+ function stopQuick(){quickRunning=false;if(quickInterval){clearInterval(quickInterval);quickInterval=null}}
+ function setMode(next,auto=false){stopMain();mode=next;mainTotal=duration[next]()*60;mainLeft=mainTotal;$("mainStatus").textContent=auto?"Starting "+label(next).toLowerCase()+" automatically.":"Ready for "+label(next).toLowerCase()+".";renderMain();if(auto)startMain()}
+ function label(m){return m==="focus"?"focus":m==="short"?"short break":"long break"}
+
+ function renderMain(){
+  const elapsed=mainTotal-mainLeft,p=mainTotal?elapsed/mainTotal:0,offset=circumference*(1-p);
+  ["mainRing","glowRing"].forEach(id=>{$(id).style.strokeDasharray=circumference;$(id).style.strokeDashoffset=offset});
+  $("mainTime").textContent=fmt(mainLeft);document.title=(mainRunning?fmt(mainLeft)+" · "+label(mode)+" – ":"")+"Pomodoro Studio";renderMinuteRing();saveTimer();$("elapsedText").textContent=fmt(elapsed)+" elapsed · "+fmt(mainTotal)+" total";
+  $("mainStart").textContent=mainRunning?"Pause":(mainLeft===mainTotal?"Start "+label(mode):"Resume");
+  
+  const n=rounds(),roundNow=(stats.rounds%n)+1;$("roundBadge").textContent="Round "+roundNow+" / "+n;
+  $("roundCopy").textContent=(stats.rounds%n)+" of "+n+" focus rounds completed in this set";
+  $("roundDots").innerHTML="";for(let i=0;i<n;i++){const d=document.createElement("i");d.className="dot"+(i<stats.rounds%n?" done":"");$("roundDots").appendChild(d)}
+  
+  const todayMins=Math.round((stats.days[dateKey()]||0)/60);
+  $("statSessions").textContent=stats.rounds;$("statTime").textContent=todayMins+"m";$("statSets").textContent=stats.sets;
+  document.querySelectorAll("[data-mode]").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));
+
+  const dayBudgetMins=960;
+  const percent=Math.min(100,(todayMins/dayBudgetMins)*100);
+  $("budgetFill").style.width=percent+"%";
+  $("budgetText").textContent=`Day Budget: ${todayMins}m focused`;
+  $("budgetRemaining").textContent=`${Math.max(0,dayBudgetMins-todayMins)}m left`;
+ }
+
+ function renderQuick(){$("quickTime").textContent=fmt(quickLeft);$("quickStart").textContent=quickRunning?"Pause":(quickLeft===quickTotal||quickLeft===0)?"Start":"Resume"}
+
+ function addFocusStats(){
+  const key=dateKey();stats.days[key]=(stats.days[key]||0)+mainTotal;stats.rounds++;stats.totalSeconds+=mainTotal;
+  if(stats.rounds%rounds()===0)stats.sets++;
+  if(activeTaskId){const t=tasks.find(x=>x.id===activeTaskId);if(t){t.roundsLinked=(t.roundsLinked||0)+1;persistTasks();renderTasks()}}
+  save("pomodoroStats12",stats);
+ }
+
+ function finishMain(silent){
+  stopMain();mainLeft=0;renderMain();if(!silent)alarm();
+  let next,auto;
+  if(mode==="focus"){
+   addFocusStats();const long=(stats.rounds%rounds()===0);next=long?"long":"short";auto=!silent&&prefs.autoBreak;
+   $("mainStatus").textContent=long?"Focus set complete. Long break time.":"Focus round complete. Break time.";
+  }else{
+   next="focus";auto=!silent&&prefs.autoFocus;$("mainStatus").textContent="Break finished. Ready to focus.";
+  }
+  const doneMsg=$("mainStatus").textContent;
+  if(!silent)notifyEnd(mode==="focus"?"Focus round complete":"Break finished",doneMsg);
+  setMode(next,auto);if(!auto)$("mainStatus").textContent=doneMsg;renderStats();
+ }
+
+ function mainTick(){
+  if(!mainRunning)return;
+  const left=Math.max(0,Math.ceil((mainEndAt-Date.now())/1000));
+  if(left===mainLeft)return;
+  if($("tickOn").checked&&left>0)beep(950,.025,.018,"triangle");
+  mainLeft=left;renderMain();if(mainLeft===0)finishMain()
+ }
+ function quickTick(){
+  if(!quickRunning)return;
+  const left=Math.max(0,Math.ceil((quickEndAt-Date.now())/1000));
+  if(left===quickLeft)return;
+  if($("tickOn").checked&&left>0)beep(950,.025,.018,"triangle");
+  quickLeft=left;renderQuick();
+  if(!quickLeft){stopQuick();$("quickStatus").textContent="Time is up!";alarm();renderQuick()}
+ }
+ function startMain(){
+  audio();if(mainRunning){stopMain();$("mainStatus").textContent="Paused.";renderMain();return}
+  if(mainLeft<=0){mainTotal=duration[mode]()*60;mainLeft=mainTotal}
+  mainRunning=true;$("mainStatus").textContent=label(mode)+" in progress.";
+  if(prefs.keepAwake)toggleWakeLock(true);
+  mainEndAt=Date.now()+mainLeft*1000;
+  mainInterval=setInterval(mainTick,250);renderMain()
+ }
+
+ // Per-minute ring: purely visual (no sound/notification/state), focus sessions longer than 2 minutes only.
+ function renderMinuteRing(){
+  const g=$("minuteGroup"),ring=$("minuteRing");if(!g||!ring)return;
+  const show=mode==="focus"&&mainTotal>120;
+  g.style.display=show?"":"none";if(!show)return;
+  const left=mainRunning?(mainEndAt-Date.now())/1000:mainLeft;
+  const el=Math.min(mainTotal,Math.max(0,mainTotal-left));
+  const frac=(el%60)/60;
+  ring.style.strokeDashoffset=615.75*(1-frac);
+  ring.style.opacity=frac<0.004?0:1;
+ }
+ setInterval(()=>{if(mainRunning&&mode==="focus")renderMinuteRing()},200);
+ $("clockWrap").addEventListener("click",()=>{startMain()});
+ $("clockWrap").setAttribute("role","button");$("clockWrap").setAttribute("tabindex","0");$("clockWrap").setAttribute("aria-label","Start or pause timer");
+ $("clockWrap").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();startMain()}});
+
+ function quickFromInputs(){const m=bounded("quickMins",10,0,999),s=bounded("quickSecs",0,0,59);quickTotal=m*60+s;quickLeft=quickTotal;renderQuick()}
+ function startQuick(){
+  audio();if(quickRunning){stopQuick();$("quickStatus").textContent="Paused";renderQuick();return}
+  if(quickLeft<=0)quickFromInputs();if(!quickLeft){$("quickStatus").textContent="Choose duration first";return}
+  quickRunning=true;$("quickStatus").textContent="Countdown running";
+  quickEndAt=Date.now()+quickLeft*1000;
+  quickInterval=setInterval(quickTick,250);renderQuick()
+ }
+
+ const normTag=x=>String(x||"").trim().replace(/^#+/,"").toLowerCase().replace(/\s+/g,"-").replace(/[^a-z0-9-_]/g,"");
+ function stripTags(text){return text.replace(/#[a-zA-Z0-9-_]+/g," ").replace(/\s{2,}/g," ").trim()}
+ let tagList=load("pomodoroTags12",null);
+ (()=>{
+  let changed=false;
+  if(!Array.isArray(tagList)){tagList=[];changed=true}
+  tasks.forEach(t=>{
+   if(!Array.isArray(t.tags)){
+    t.tags=[...new Set(extractTags(t.text))];
+    const clean=stripTags(t.text);if(t.tags.length&&clean)t.text=clean;
+    t.tags.forEach(g=>{if(!tagList.includes(g))tagList.push(g)});changed=true;
+   }
+  });
+  if(changed){persistTags();persistTasks()}
+ })();
+ function addTag(name){const n=normTag(name);if(n&&!tagList.includes(n)){tagList.push(n);persistTags()}return n}
+ function removeTag(n){
+  tagList=tagList.filter(x=>x!==n);tasks.forEach(t=>{t.tags=(t.tags||[]).filter(x=>x!==n)});
+  if(activeTag===n)activeTag="all";persistTags();persistTasks();renderTasks();
+ }
+ function extractTags(text){
+  const matches=text.match(/#([a-zA-Z0-9-_]+)/g);
+  return matches?matches.map(m=>m.slice(1).toLowerCase()):[];
+ }
+
+ function renderTagsBar(){
+  if(activeTag!=="all"&&!tagList.includes(activeTag))activeTag="all";
+  const bar=$("tagBar");bar.innerHTML="";
+  const allBtn=document.createElement("button");allBtn.className="tag-pill"+(activeTag==="all"?" active":"");allBtn.textContent="#all";
+  allBtn.addEventListener("click",()=>{activeTag="all";renderTasks()});
+  bar.appendChild(allBtn);
+  tagList.forEach(tag=>{
+   const btn=document.createElement("button");btn.className="tag-pill"+(activeTag===tag?" active":"");btn.textContent="#"+tag;
+   btn.addEventListener("click",()=>{activeTag=tag;renderTasks()});
+   const x=document.createElement("span");x.className="x";x.textContent="×";x.title="Delete tag (tasks are kept)";
+   x.addEventListener("click",e=>{e.stopPropagation();if(confirm('Delete tag #'+tag+'? Tasks stay, they just lose this tag.'))removeTag(tag)});
+   btn.appendChild(x);bar.appendChild(btn);
+  });
+ }
+
+ function renderTasks(){
+  renderTagsBar();
+  const filtered=tasks.filter(t=>{if(activeTag==="all")return true;return (t.tags||[]).includes(activeTag)});
+  $("taskList").innerHTML="";const done=tasks.filter(t=>t.done).length;
+  $("taskProgress").textContent=done+" completed";$("taskCount").textContent=tasks.length+" task"+(tasks.length===1?"":"s");
+  if(!filtered.length){$("taskList").innerHTML='<div class="empty">No tasks found in this view. Add one above!</div>';return}
+  
+  filtered.forEach(t=>{
+   const row=document.createElement("div");row.className="task"+(t.done?" done":"")+(t.id===activeTaskId?" active-task":"");
+   const check=document.createElement("input");check.type="checkbox";check.checked=t.done;check.addEventListener("change",()=>{
+    t.done=check.checked;t.completedAt=t.done?Date.now():null;
+    stats.taskLog=stats.taskLog.filter(x=>x.id!==t.id);if(t.done)stats.taskLog.push({id:t.id,at:t.completedAt});
+    save("pomodoroStats12",stats);persistTasks();renderTasks();renderStats();
+   });
+   
+   const content=document.createElement("div");content.className="task-content";
+   const text=document.createElement("span");text.className="task-text";text.textContent=t.text;
+   
+   const sub=document.createElement("div");sub.className="task-submeta";
+   if(t.roundsLinked){const badge=document.createElement("span");badge.className="task-badge";badge.textContent=`🍅 ${t.roundsLinked}`;sub.appendChild(badge)}
+   const activeTagLbl=document.createElement("span");activeTagLbl.textContent=t.id===activeTaskId?"✨ Active focus target":"";sub.appendChild(activeTagLbl);
+   const tg=document.createElement("div");tg.className="task-tags";
+   (t.tags||[]).forEach(n=>{
+    const chip=document.createElement("span");chip.className="chip";chip.textContent="#"+n;
+    const rm=document.createElement("button");rm.textContent="×";rm.title="Remove tag from this task";rm.addEventListener("click",()=>{t.tags=t.tags.filter(x=>x!==n);persistTasks();renderTasks()});
+    chip.appendChild(rm);tg.appendChild(chip);
+   });
+   const free=tagList.filter(n=>!(t.tags||[]).includes(n));
+   if(free.length){
+    const sel=document.createElement("select");sel.className="tag-assign";sel.title="Add tag to this task";sel.setAttribute("aria-label","Add tag to task");
+    sel.innerHTML='<option value="">+ tag</option>'+free.map(n=>'<option value="'+n+'">#'+n+'</option>').join("");
+    sel.addEventListener("change",()=>{if(!sel.value)return;t.tags=[...(t.tags||[]),sel.value];persistTasks();renderTasks()});
+    tg.appendChild(sel);
+   }
+   content.append(text,sub,tg);
+
+   const actions=document.createElement("div");actions.className="task-actions";
+   const linkBtn=document.createElement("button");linkBtn.className="link-round-btn";linkBtn.textContent=t.id===activeTaskId?"Linked":"Link";linkBtn.addEventListener("click",()=>{activeTaskId=t.id===activeTaskId?null:t.id;renderTasks()});
+   
+   const editBtn=document.createElement("button");editBtn.className="edit-task-btn";editBtn.textContent="✎";editBtn.title="Edit task text";editBtn.addEventListener("click",()=>{
+    const raw=prompt("Edit task description (tags are managed with the chips below it; #word adds a tag):",t.text);
+    if(raw!==null){const clean=stripTags(raw);if(clean){t.text=clean;extractTags(raw).forEach(g=>{const n=addTag(g);if(n&&!t.tags.includes(n))t.tags.push(n)});persistTasks();renderTasks();}}
+   });
+
+   const del=document.createElement("button");del.className="delete-task";del.textContent="×";del.addEventListener("click",()=>{if(activeTaskId===t.id)activeTaskId=null;tasks=tasks.filter(x=>x.id!==t.id);persistTasks();renderTasks();renderStats()});
+   
+   actions.append(linkBtn,editBtn,del);
+   row.append(check,content,actions);$("taskList").appendChild(row)
+  });
+ }
+
+ function renderStats(){
+  const keys=Object.keys(stats.days),active=keys.length,total=stats.totalSeconds;
+  const now=new Date(),todayStr=dateKey(now),currentMonth=now.getMonth(),currentYear=now.getFullYear();
+  const weekStart=new Date(now.getFullYear(),now.getMonth(),now.getDate()-((now.getDay()+6)%7)).getTime(); // Monday 00:00 local
+
+  let todayCount=0,weekCount=0,monthCount=0;
+  stats.taskLog.forEach(e=>{
+   const d=new Date(e.at);
+   if(dateKey(d)===todayStr) todayCount++;
+   if(e.at>=weekStart) weekCount++;
+   if(d.getMonth()===currentMonth&&d.getFullYear()===currentYear) monthCount++;
+  });
+
+  $("statTasksToday").textContent=todayCount;
+  $("statTasksWeek").textContent=weekCount;
+  $("statTasksMonth").textContent=monthCount;
+  $("totalFocus").textContent=(total/3600).toFixed(total>=3600?1:2)+"h";
+
+  const totalMins=Math.floor(total/60);
+  let report="You have logged "+totalMins+" minutes across "+active+" active days. ";
+  if(active===0)report+="Start your first session on the main page to build your weekly rhythm.";
+  else if(totalMins>120)report+="🔥 Excellent consistency! Strong deep work momentum maintained.";
+  else report+="🌱 Steady progress! A few more sessions will supercharge your weekly output.";
+  $("fastReportText").textContent=report;
+
+  const week=[];for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);const k=dateKey(d);week.push({key:k,label:d.toLocaleDateString(undefined,{weekday:"short"}),mins:Math.round((stats.days[k]||0)/60)})}
+  const max=Math.max(1,...week.map(x=>x.mins));$("weekChart").innerHTML="";
+  week.forEach(x=>{const item=document.createElement("div");item.className="daybar";const value=document.createElement("em");value.textContent=x.mins?x.mins+"m":"";const track=document.createElement("div");track.className="bar-track";const fill=document.createElement("div");fill.className="bar-fill";fill.style.height=(x.mins/max*100)+"%";track.appendChild(fill);const day=document.createElement("small");day.textContent=x.label;item.append(value,track,day);$("weekChart").appendChild(item)});
+ }
+
+ document.querySelectorAll(".nav button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll(".nav button").forEach(x=>x.classList.toggle("active",x===b));document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));$(b.dataset.view+"View").classList.add("active");if(b.dataset.view==="stats")renderStats()}));
+ document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>setMode(b.dataset.mode)));
+ $("mainStart").addEventListener("click",startMain);
+ $("mainReset").addEventListener("click",()=>{stopMain();mainTotal=duration[mode]()*60;mainLeft=mainTotal;$("mainStatus").textContent="Timer reset.";renderMain()});
+ $("mainSkip").addEventListener("click",()=>{if(mode==="focus")setMode(stats.rounds%rounds()===rounds()-1?"long":"short");else setMode("focus")});
+ $("quickStart").addEventListener("click",startQuick);$("quickReset").addEventListener("click",()=>{stopQuick();quickFromInputs();$("quickStatus").textContent="Reset"});
+ ["quickMins","quickSecs"].forEach(id=>$(id).addEventListener("change",()=>{if(!quickRunning)quickFromInputs()}));
+ ["focusMins","shortMins","longMins","roundsMins"].forEach(id=>$(id).addEventListener("change",()=>{const map={focusMins:["focus",1,180,25],shortMins:["short",1,90,5],longMins:["long",1,120,15],roundsMins:["rounds",1,20,4]},[key,min,max,def]=map[id];prefs[id]=bounded(id,def,min,max);save("pomodoroPrefs12",prefs);if(key==="rounds")renderMain();else if(mode===key&&!mainRunning){mainTotal=duration[mode]()*60;mainLeft=mainTotal;renderMain()}}));
+ 
+ ["focusMins","shortMins","longMins","roundsMins"].forEach(id=>{$(id).value=prefs[id]});
+ mainTotal=mainLeft=duration[mode]()*60;
+ ["autoFocus","autoBreak","tickOn","keepAwake","notifyOn"].forEach(id=>{
+  $(id).checked=prefs[id];
+  $(id).addEventListener("change",()=>{prefs[id]=$(id).checked;save("pomodoroPrefs12",prefs);if(id==="keepAwake"&&mainRunning)toggleWakeLock(prefs.keepAwake)})
+ });
+ $("endSound").value=prefs.endSound;$("endSound").addEventListener("change",()=>{prefs.endSound=$("endSound").value;save("pomodoroPrefs12",prefs)});
+ $("testSound").addEventListener("click",()=>{audio();endChime()});
+
+ $("taskForm").addEventListener("submit",e=>{e.preventDefault();const raw=$("taskInput").value.trim();const text=stripTags(raw);if(!text)return;
+  const tags=extractTags(raw).map(addTag).filter(Boolean);if(activeTag!=="all"&&!tags.includes(activeTag))tags.push(activeTag);
+  tasks.unshift({id:Date.now()+Math.random(),text,tags:[...new Set(tags)],done:false,roundsLinked:0,completedAt:null});persistTasks();$("taskInput").value="";renderTasks();renderStats()});
+ $("tagForm").addEventListener("submit",e=>{e.preventDefault();const n=addTag($("tagInput").value);$("tagInput").value="";if(n){activeTag=n;renderTasks()}});
+ $("clearDone").addEventListener("click",()=>{tasks=tasks.filter(t=>!t.done);persistTasks();renderTasks();renderStats()});
+ $("resetStats").addEventListener("click",()=>{if(confirm("Reset all focus statistics?")){stats={days:{},rounds:0,sets:0,totalSeconds:0,taskLog:[]};save("pomodoroStats12",stats);renderStats();renderMain()}});
+
+ const themes={
+  sinister:{"--bg":"#000000","--bg2":"#090909","--panel":"#050505","--panel2":"#0e0e0e","--ink":"#f2f2f2","--muted":"#666666","--accent":"#ffffff","--accent2":"#8c8c8c","--accentText":"#000000","--line":"#262626","--track":"#121212","--shadow":"0 20px 60px #000000ff","--glow1":"#ffffff0a","--glow2":"#ffffff05"},
+  get dynamic(){
+   const hr=new Date().getHours();
+   if(hr>=5&&hr<11) return {"--bg":"#1a202c","--bg2":"#2d3748","--panel":"#2a3447","--panel2":"#37435b","--ink":"#f7fafc","--muted":"#cbd5e0","--accent":"#31cbd6","--accent2":"#4fd1c5","--accentText":"#0d1b2a","--line":"#4a5568","--track":"#2d3748","--shadow":"0 15px 40px #090e1799","--glow1":"#31cbd633","--glow2":"#4fd1c522"};
+   if(hr>=11&&hr<15)return {"--bg":"#1e293b","--bg2":"#334155","--panel":"#293548","--panel2":"#38445b","--ink":"#f8fafc","--muted":"#94a3b8","--accent":"#38bdf8","--accent2":"#818cf8","--accentText":"#0f172a","--line":"#475569","--track":"#334155","--shadow":"0 15px 40px #02061799","--glow1":"#38bdf833","--glow2":"#818cf822"};
+   if(hr>=15&&hr<18)return {"--bg":"#271c1a","--bg2":"#3d2c28","--panel":"#362522","--panel2":"#4c342f","--ink":"#fff5f0","--muted":"#d4b2a7","--accent":"#fb923c","--accent2":"#f43f5e","--accentText":"#1a0f0d","--line":"#66463e","--track":"#422e29","--shadow":"0 15px 40px #14070599","--glow1":"#fb923c33","--glow2":"#f43f5e22"};
+   if(hr>=18&&hr<22)return {"--bg":"#1c1626","--bg2":"#2e243d","--panel":"#292038","--panel2":"#392f4c","--ink":"#fcf5ff","--muted":"#cbb8df","--accent":"#c084fc","--accent2":"#e879f9","--accentText":"#140d1f","--line":"#54436b","--track":"#392d4b","--shadow":"0 15px 40px #09041299","--glow1":"#c084fc33","--glow2":"#e879f922"};
+   return {"--bg":"#09090b","--bg2":"#18181b","--panel":"#121215","--panel2":"#1f1f23","--ink":"#fafafa","--muted":"#71717a","--accent":"#22c55e","--accent2":"#10b981","--accentText":"#052e16","--line":"#27272a","--track":"#18181b","--shadow":"0 15px 40px #000000bb","--glow1":"#22c55e33","--glow2":"#10b98122"};
+  },
+  cyber:{"--bg":"#111827","--bg2":"#1d2940","--panel":"#202e48","--panel2":"#293b59","--ink":"#eafaff","--muted":"#9cb9cb","--accent":"#20e3ff","--accent2":"#9b5cff","--accentText":"#101b2b","--line":"#45617c","--track":"#354b67","--shadow":"0 15px 40px #03091699","--glow1":"#20e3ff55","--glow2":"#9b5cff44"},
+  vampire:{"--bg":"#190d14","--bg2":"#2b111d","--panel":"#321522","--panel2":"#451b2b","--ink":"#fff0e9","--muted":"#c7a0a6","--accent":"#ff3157","--accent2":"#a90f35","--accentText":"#fff3ed","--line":"#743449","--track":"#5b2a3b","--shadow":"0 15px 40px #080207aa","--glow1":"#ff315755","--glow2":"#a90f3544"},
+  garden:{"--bg":"#f1f2df","--bg2":"#e2ebcf","--panel":"#fff9e8","--panel2":"#fffdf2","--ink":"#354638","--muted":"#71806b","--accent":"#e99b36","--accent2":"#77a96b","--accentText":"#263b2d","--line":"#d2dcbf","--track":"#dce4cc","--shadow":"0 12px 35px #66734a25","--glow1":"#e99b3655","--glow2":"#77a96b44"}
+ };
+ function setTheme(name){
+  const vars=name==="dynamic"?themes.dynamic:(themes[name]||themes.sinister);
+  Object.entries(vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  document.querySelector('meta[name=theme-color]')?.setAttribute('content',vars['--bg']);
+  prefs.theme=name;save("pomodoroPrefs12",prefs);$("themeSelect").value=name;
+ }
+ $("themeSelect").value=prefs.theme||"sinister";setTheme(prefs.theme||"sinister");$("themeSelect").addEventListener("change",e=>setTheme(e.target.value));
+
+
+ // ---------- notifications ----------
+ $("notifyOn").addEventListener("change",async()=>{
+  if($("notifyOn").checked){
+   let p=("Notification" in window)?Notification.permission:"denied";
+   if(p==="default"){try{p=await Notification.requestPermission()}catch(e){p="denied"}}
+   if(p!=="granted"){$("notifyOn").checked=false;prefs.notifyOn=false;save("pomodoroPrefs12",prefs)}
+  }
+ });
+ async function notifyEnd(title,body){
+  if(!prefs.notifyOn||!("Notification" in window)||Notification.permission!=="granted"||document.visibilityState==="visible")return;
+  try{
+   const reg=await navigator.serviceWorker?.getRegistration();
+   if(reg&&reg.showNotification)await reg.showNotification(title,{body,icon:"icons/icon-192.png",badge:"icons/icon-192.png",tag:"pomodoro-round",renotify:true});
+   else new Notification(title,{body,icon:"icons/icon-192.png"});
+  }catch(e){}
+ }
+
+ // ---------- timer persistence (survives reloads / Android killing the app) ----------
+ let lastTimerSig="";
+ function saveTimer(){
+  const sg=[mode,mainTotal,mainRunning,mainRunning?mainEndAt:mainLeft].join("|");
+  if(sg===lastTimerSig)return;lastTimerSig=sg;
+  save("pomodoroTimer12",{mode,total:mainTotal,running:mainRunning,endAt:mainRunning?mainEndAt:0,left:mainLeft});
+ }
+ (function restoreTimer(){
+  const t=load("pomodoroTimer12",null);
+  if(!t||!["focus","short","long"].includes(t.mode)||!(t.total>0))return;
+  mode=t.mode;mainTotal=t.total;mainLeft=Math.min(t.left>0?t.left:t.total,t.total);
+  if(t.running&&t.endAt){
+   const left=Math.ceil((t.endAt-Date.now())/1000);
+   if(left>0){mainLeft=Math.min(left,mainTotal);startMain()}
+   else if(Date.now()-t.endAt<6*3600*1000){mainLeft=0;finishMain(true);$("mainStatus").textContent="That round finished while the app was closed."}
+   else{mainLeft=mainTotal}
+  }
+ })();
+
+ renderMain();renderQuick();renderTasks();renderStats();
+ // ---------- JSON helpers ----------
+ const sortObj=o=>Object.keys(o||{}).sort().reduce((a,k)=>(a[k]=o[k],a),{});
+ const cleanTask=t=>({id:t.id,text:t.text,tags:Array.isArray(t.tags)?t.tags:[],done:!!t.done,completedAt:t.completedAt||null,roundsLinked:t.roundsLinked||0,updatedAt:t.updatedAt||0});
+ function buildDoc(){return {app:"pomodoro-studio",v:1,tasks:tasks.map(cleanTask),taskTomb:{...syncMeta.taskTomb},tags:Object.fromEntries(tagList.map(n=>[n,syncMeta.tags[n]||1])),tagTomb:{...syncMeta.tagTomb}}}
+ function canonDoc(d){return JSON.stringify({tasks:[...(d.tasks||[])].map(cleanTask).sort((x,y)=>String(x.id)<String(y.id)?-1:1),taskTomb:sortObj(d.taskTomb),tags:sortObj(d.tags),tagTomb:sortObj(d.tagTomb)})}
+ function mergeDocs(a,b){
+  const maxMerge=(...objs)=>{const o={};objs.forEach(x=>Object.entries(x||{}).forEach(([k,v])=>{o[k]=Math.max(o[k]||0,Number(v)||0)}));return o};
+  const tomb=maxMerge(a.taskTomb,b.taskTomb),tagTs=maxMerge(a.tags,b.tags),tagTomb=maxMerge(a.tagTomb,b.tagTomb);
+  const map=new Map();
+  [...(a.tasks||[]),...(b.tasks||[])].forEach(t=>{const k=String(t.id),c=map.get(k);if(!c||(t.updatedAt||0)>(c.updatedAt||0))map.set(k,t)});
+  const out=[];
+  map.forEach((t,k)=>{if(tomb[k]&&tomb[k]>=(t.updatedAt||0))return;delete tomb[k];out.push(cleanTask(t))});
+  const tags={};
+  Object.entries(tagTs).forEach(([k,v])=>{if(v>(tagTomb[k]||0)){tags[k]=v;delete tagTomb[k]}});
+  out.forEach(t=>{t.tags=t.tags.filter(n=>tags[n])});
+  const cutoff=Date.now()-90*864e5;
+  [tomb,tagTomb].forEach(o=>Object.keys(o).forEach(k=>{if(o[k]<cutoff)delete o[k]}));
+  out.sort((x,y)=>y.id-x.id);
+  return {app:"pomodoro-studio",v:1,tasks:out,taskTomb:tomb,tags,tagTomb};
+ }
+ function applyDoc(d){
+  tasks=d.tasks.map(cleanTask);
+  syncMeta.taskTomb=d.taskTomb;syncMeta.tags=d.tags;syncMeta.tagTomb=d.tagTomb;
+  tagList=[...tagList.filter(n=>d.tags[n]),...Object.keys(d.tags).filter(n=>!tagList.includes(n))];
+  tagPrev=[...tagList];initSigs();
+  if(activeTaskId&&!tasks.some(t=>t.id===activeTaskId))activeTaskId=null;
+  // keep the "tasks done" statistics in step with completions that happened on other devices
+  tasks.forEach(t=>{
+   const has=stats.taskLog.some(e=>e.id===t.id);
+   if(t.done&&t.completedAt&&!has)stats.taskLog.push({id:t.id,at:t.completedAt});
+   if(!t.done&&has)stats.taskLog=stats.taskLog.filter(e=>e.id!==t.id);
+  });
+  save("pomodoroTasks12",tasks);save("pomodoroTags12",tagList);save("pomodoroSyncMeta12",syncMeta);save("pomodoroStats12",stats);
+  renderTasks();renderStats();renderMain();
+ }
+
+ // ---------- GitHub Gist transport ----------
+ function setSync(state,msg){
+  const badge=$("syncBadge"),st=$("syncStatus");
+  const map={off:["",""],busy:["☁ syncing…",""],ok:["☁ synced",""],offline:["☁ offline",""],err:["☁ sync error","err"]};
+  const [txt,cls]=map[state]||map.off;badge.textContent=syncCfg.token?txt:"";badge.className="sync-badge "+cls;
+  if(msg!==undefined){st.textContent=msg;st.className="hint sync-status "+(state==="err"?"err":"")}
+ }
+ async function gh(path,opts={}){
+  const r=await fetch("https://api.github.com"+path,{...opts,cache:"no-store",headers:{Accept:"application/vnd.github+json",Authorization:"Bearer "+syncCfg.token,...(opts.body?{"Content-Type":"application/json"}:{})}});
+  if(!r.ok){const e=new Error("GitHub "+r.status);e.status=r.status;throw e}
+  return r.json();
+ }
+ async function findGist(){
+  for(let p=1;p<=5;p++){
+   const list=await gh("/gists?per_page=100&page="+p);
+   const g=list.find(x=>x.files&&x.files[SYNC_FILE]);if(g)return g.id;
+   if(list.length<100)break;
+  }
+  return "";
+ }
+ async function readGist(id){
+  const g=await gh("/gists/"+id),f=g.files&&g.files[SYNC_FILE];if(!f)return null;
+  let txt=f.content;
+  if(f.truncated||txt==null){const r=await fetch(f.raw_url,{cache:"no-store"});txt=await r.text()}
+  try{const d=JSON.parse(txt);return d&&Array.isArray(d.tasks)?d:null}catch(e){return null}
+ }
+ const gistBody=doc=>JSON.stringify({files:{[SYNC_FILE]:{content:JSON.stringify(doc)}}});
+ async function syncOnce(){
+  if(!syncCfg.token)return;
+  if(syncing){syncAgain=true;return}
+  if(!navigator.onLine){setSync("offline","Offline. Changes are saved here and will sync when you are back online.");return}
+  syncing=true;setSync("busy");
+  try{
+   if(!syncCfg.gistId){syncCfg.gistId=await findGist();save("pomodoroSync12",syncCfg)}
+   let remote=null;
+   if(syncCfg.gistId){
+    try{remote=await readGist(syncCfg.gistId)}
+    catch(e){if(e.status===404){syncCfg.gistId="";}else throw e}
+   }
+   if(!syncCfg.gistId){
+    const g=await gh("/gists",{method:"POST",body:JSON.stringify({description:"Pomodoro Studio sync (managed by the app, do not edit)",public:false,files:{[SYNC_FILE]:{content:JSON.stringify(buildDoc())}}})});
+    syncCfg.gistId=g.id;remote=buildDoc();
+   }
+   const local=buildDoc(),merged=remote?mergeDocs(local,remote):local;
+   if(canonDoc(merged)!==canonDoc(local))applyDoc(merged);
+   if(!remote||canonDoc(merged)!==canonDoc(remote))await gh("/gists/"+syncCfg.gistId,{method:"PATCH",body:gistBody(merged)});
+   syncCfg.lastSync=Date.now();save("pomodoroSync12",syncCfg);
+   const hh=new Date(syncCfg.lastSync).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+   setSync("ok","Connected. Last synced at "+hh+" · "+tasks.length+" task"+(tasks.length===1?"":"s")+".");
+  }catch(e){
+   if(e.status===401)setSync("err","GitHub rejected the token. Create a new one with the “gist” scope and paste it again.");
+   else if(e.status===403||e.status===429)setSync("err","GitHub rate limit reached. Will retry shortly.");
+   else if(!navigator.onLine||e instanceof TypeError)setSync("offline","Can't reach GitHub right now. Will retry automatically.");
+   else setSync("err","Sync failed ("+(e.message||e)+"). Will retry.");
+  }finally{
+   syncing=false;
+   if(syncAgain){syncAgain=false;setTimeout(syncOnce,300)}
+  }
+ }
+ function scheduleSync(){if(!syncCfg.token)return;clearTimeout(syncTimer);syncTimer=setTimeout(syncOnce,1500)}
+ setInterval(()=>{if(syncCfg.token&&document.visibilityState==="visible")syncOnce()},60000);
+ document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")syncOnce()});
+ window.addEventListener("online",syncOnce);
+ window.addEventListener("offline",()=>{if(syncCfg.token)setSync("offline","Offline. Changes are saved here and will sync when you are back online.")});
+ $("syncConnect").addEventListener("click",()=>{
+  const tok=$("syncToken").value.trim();
+  if(tok){syncCfg={token:tok,gistId:"",lastSync:0};save("pomodoroSync12",syncCfg);$("syncToken").value=""}
+  if(!syncCfg.token){setSync("err","Paste a GitHub token first.");return}
+  syncOnce();
+ });
+ $("syncNow").addEventListener("click",()=>{if(!syncCfg.token){setSync("err","Connect first: paste a GitHub token.");return}syncOnce()});
+ $("syncDisconnect").addEventListener("click",()=>{
+  if(!syncCfg.token)return;
+  if(!confirm("Disconnect sync? Tasks stay on this device. The Gist stays on your GitHub account."))return;
+  syncCfg={token:"",gistId:"",lastSync:0};save("pomodoroSync12",syncCfg);setSync("off","Not connected. Everything stays on this device.");
+ });
+ $("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(buildDoc(),null,1)],{type:"application/json"}),a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);a.download="pomodoro-tasks-"+dateKey()+".json";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+ });
+ $("importFile").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{
+   const d=JSON.parse(await f.text());if(!d||!Array.isArray(d.tasks))throw new Error("bad file");
+   applyDoc(mergeDocs(buildDoc(),d));persistTasks();persistTags();setSync(syncCfg.token?"busy":"off","Imported "+d.tasks.length+" task"+(d.tasks.length===1?"":"s")+" (merged with existing).");
+  }catch(err){setSync("err","That file isn't a Pomodoro Studio export.")}
+ });
+ if(syncCfg.token){setSync("busy","Connected. Syncing…");setTimeout(syncOnce,600)}
+
+ // ---------- PWA glue: install button, audio unlock, shortcuts ----------
+ let deferredInstall=null;
+ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;$("installRow").style.display=""});
+ window.addEventListener("appinstalled",()=>{deferredInstall=null;$("installRow").style.display="none"});
+ $("installBtn").addEventListener("click",async()=>{if(!deferredInstall)return;deferredInstall.prompt();try{await deferredInstall.userChoice}catch(e){}deferredInstall=null;$("installRow").style.display="none"});
+ ["pointerdown","keydown"].forEach(ev=>window.addEventListener(ev,()=>audio(),{once:true,passive:true}));
+
+ function showTimerView(){document.querySelector('.nav button[data-view="timer"]').click()}
+ function handleAction(a){
+  if(a==="add-task"){showTimerView();setTimeout(()=>{$("taskInput").focus();$("taskInput").scrollIntoView?.({block:"center"})},50)}
+  else if(a==="start-round"){
+   showTimerView();
+   if(mode!=="focus"||(!mainRunning&&mainLeft<=0))setMode("focus");
+   if(!mainRunning)startMain();
+  }
+ }
+ const launchAction=new URLSearchParams(location.search).get("action");
+ if(launchAction){handleAction(launchAction);try{history.replaceState(null,"",location.pathname)}catch(e){}}
+ if("launchQueue" in window)launchQueue.setConsumer(p=>{if(p&&p.targetURL){const a=new URL(p.targetURL).searchParams.get("action");if(a)handleAction(a)}});
+
+ if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+})();
+</script>
+</body></html>
